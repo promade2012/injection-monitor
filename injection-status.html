@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사출기 11대 실시간 작업 현황판</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #1a3c6e;
+            margin-bottom: 10px;
+            font-size: 29px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1680px;
+            margin: 0 auto 20px;
+            background: white;
+            padding: 16px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        #current-time {
+            font-size: 18px;
+            font-weight: 500;
+            color: #1a3c6e;
+        }
+        
+        .table-container {
+            max-width: 1680px;
+            margin: 0 auto;
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            min-width: 1480px;
+        }
+        
+        th {
+            background: #1a3c6e;
+            color: white;
+            padding: 16px 10px;
+            font-weight: 700;
+            font-size: 15.5px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            white-space: nowrap;
+        }
+        
+        td {
+            padding: 14px 10px;
+            text-align: center;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 15px;
+            vertical-align: middle;
+        }
+        
+        tr:hover {
+            background: #f0f7ff;
+        }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 9px 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+            text-align: center;
+            background: #f9f9f9;
+        }
+        
+        input[readonly] {
+            background: #f0f0f0;
+            color: #555;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        
+        .toggle-btn {
+            padding: 9px 18px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .toggle-btn.running {
+            background: #d32f2f;
+            color: white;
+        }
+        
+        .toggle-btn:not(.running) {
+            background: #2e7d32;
+            color: white;
+        }
+        
+        .status {
+            font-weight: 700;
+            padding: 8px 14px;
+            border-radius: 25px;
+            display: inline-block;
+            min-width: 92px;
+            font-size: 14.5px;
+        }
+        
+        .running-status {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .idle-status {
+            background: #f0f0f0;
+            color: #666;
+        }
+        
+        .progress-bar {
+            height: 24px;
+            background: #e0e0e0;
+            border-radius: 9999px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1a3c6e, #3b82f6);
+            transition: width 0.5s ease;
+        }
+        
+        .progress-text {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            line-height: 24px;
+            font-weight: 700;
+            color: #1f2937;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.7);
+        }
+        
+        .admin-btn {
+            padding: 11px 26px;
+            background: #ff9800;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .admin-mode {
+            background: #4caf50 !important;
+        }
+        
+        .summary {
+            max-width: 1680px;
+            margin: 25px auto 0;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .summary-box {
+            background: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 220px;
+            text-align: center;
+        }
+        
+        .summary-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .summary-value {
+            font-size: 29px;
+            font-weight: 700;
+            color: #1a3c6e;
+        }
+        
+        .note {
+            max-width: 1680px;
+            margin: 25px auto;
+            text-align: center;
+            font-size: 14.5px;
+            color: #555;
+            background: #fff3cd;
+            padding: 14px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🟢 사출기 11대 실시간 작업 현황판</h1>
+        <div>
+            <strong>현재 시간:</strong> 
+            <span id="current-time" style="font-family: monospace;"></span>
+            &nbsp;&nbsp;&nbsp;
+            <button id="adminToggle" class="admin-btn">관리자 모드 ON (수정 허용)</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="statusTable">
+            <thead>
+                <tr>
+                    <th width="85">사출기 번호</th>
+                    <th width="95">상태</th>
+                    <th width="170">현재 작업 제품</th>
+                    <th width="170">다음 작업 제품</th>
+                    <th width="105">목표 수량</th>
+                    <th width="105">사이클 타임</th>
+                    <th width="125">시작 시간</th>
+                    <th width="120">경과 시간</th>
+                    <th width="115">이론 생산 수량</th>
+                    <th width="150">진행율 (%)</th>
+                    <th width="140">이후 공정 진행율</th>
+                    <th width="105">제어</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 사출기 1 -->
+                <tr data-paused-elapsed="0" data-start-time="" data-job-start-time="">
+                    <td><strong>사출기 1</strong></td>
+                    <td class="status idle-status">대기</td>
+                    <td><input type="text" class="product" value="제품-A-001" readonly></td>
+                    <td><input type="text" class="next-product" value="제품-A-002" readonly></td>
+                    <td><input type="number" class="target" value="8000" readonly></td>
+                    <td><input type="number" class="cycle" value="42" readonly></td>
+                    <td class="start-time">-</td>
+                    <td class="elapsed">00:00:00</td>
+                    <td class="produced">0</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text">0%</div>
+                    </td>
+                    <td><input type="number" class="next-progress" value="0" min="0" max="100" readonly> %</td>
+                    <td><button class="toggle-btn">가동 시작</button></td>
+                </tr>
+                <!-- 사출기 2 -->
+                <tr data-paused-elapsed="0" data-start-time="" data-job-start-time="">
+                    <td><strong>사출기 2</strong></td>
+                    <td class="status idle-status">대기</td>
+                    <td><input type="text" class="product" value="제품-B-002" readonly></td>
+                    <td><input type="text" class="next-product" value="제품-B-003" readonly></td>
+                    <td><input type="number" class="target" value="6500" readonly></td>
+                    <td><input type="number" class="cycle" value="38" readonly></td>
+                    <td class="start-time">-</td>
+                    <td class="elapsed">00:00:00</td>
+                    <td class="produced">0</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text">0%</div>
+                    </td>
+                    <td><input type="number" class="next-progress" value="0" min="0" max="100" readonly> %</td>
+                    <td><button class="toggle-btn">가동 시작</button></td>
+                </tr>
+                <!-- 사출기 3 -->
+                <tr data-paused-elapsed="0" data-start-time="" data-job-start-time="">
+                    <td><strong>사출기 3</strong></td>
+                    <td class="status idle-status">대기</td>
+                    <td><input type="text" class="product" value="제품-C-003" readonly></td>
+                    <td><input type="text" class="next-product" value="제품-C-004" readonly></td>
+                    <td><input type="number" class="target" value="12000" readonly></td>
+                    <td><input type="number" class="cycle" value="55" readonly></td>
+                    <td class="start-time">-</td>
+                    <td class="elapsed">00:00:00</td>
+                    <td class="produced">0</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text">0%</div>
+                    </td>
+                    <td><input type="number" class="next-progress" value="0" min="0" max="100" readonly> %</td>
+                    <td><button class="toggle-btn">가동 시작</button></td>
+                </tr>
+                <!-- 사출기 4 -->
+                <tr data-paused-elapsed="0" data-start-time="" data-job-start-time="">
+                    <td><strong>사출기 4</strong></td>
+                    <td class="status idle-status">대기</td>
+                    <td><input type="text" class="product" value="제품-D-004" readonly></td>
+                    <td><input type="text" class="next-product" value="제품-D-005" readonly></td>
+                    <td><input type="number" class="target" value="9000" readonly></td>
+                    <td><input type="number" class="cycle" value="47" readonly></td>
+                    <td class="start-time">-</td>
+                    <td class="elapsed">00:00:00</td>
+                    <td class="produced">0</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text">0%</div>
+                    </td>
+                    <td><input type="number" class="next-progress" value="0" min="0" max="100" readonly> %</td>
+                    <td><button class="toggle-btn">가동 시작</button></td>
+                </tr>
+                <!-- 사출기 5 -->
+                <tr data-paused-elapsed="0" data-start-time="" data-job-start-time="">
+                    <td><strong>사출기 5</strong></td>
+                    <td class="status idle-status">대기</td>
+                    <td><input type="text" class="product" value="제품-E-005" readonly></td>
+                    <td><input type="text" class="next-product" value="제품-E-006" readonly></td>
+                    <td><input type="number" class="target" value="7500" readonly></td>
+                    <td><input type="number" class="cycle" value="35" readonly></td>
+                    <td class="start-time">-</td>
+                    <td class="elapsed">00:00:00</td>
+                    <td class="produced">0</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text">0%</div>
+                    </td>
+                    <td><input type="number" class="next-progress" value="0" min="0" max="100" readonly> %</td>
+                    <td><button class="toggle-btn">가동 시작</button></td>
+                </tr>
+                <!-- 사출기 6 -->
+                <tr data-paused-elapsed="0" data-start-time="" data-job-start-time="">
+                    <td><strong>사출기 6</strong></td>
+                    <td class="status idle-status">대기</td>
+                    <td><input type="text" class="product" value="제품-F-006" readonly></td>
+                    <td><input type="text" class="next-product" value="제품-F-007" readonly></td>
+                    <td><input type="number" class="target" value="11000" readonly></td>
+                    <td><input type="number" class="cycle" value="51" readonly></td>
+                    <td class="start-time">-</td>
+                    <td class="elapsed">00:00:00</td>
+                    <td class="produced">0</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text">0%</div>
+                    </td>
+                    <td><input type="number" class="next-progress" value="0" min="0" max="100" readonly> %</td>
+                    <td><button class="toggle-btn">가동 시작</button></td>
+                </tr>
+                <!-- 사출기 7 -->
+                <tr data-paused-elapsed="0" data-start-time="" data-job-start-time="">
+                    <td><strong>사출기 7</strong></td>
+                    <td class="status idle-status">대기</td>
+                    <td><input type="text" class="product" value="제품-G-007" readonly></td>
+                    <td><input type="text" class="next-product" value="제품-G-008" readonly></td>
+                    <td><input type="number" class="target" value="6200" readonly></td>
+                    <td><input type="number" class="cycle" value="44" readonly></td>
+                    <td class="start-time">-</td>
+                    <td class="elapsed">00:00:00</td>
+                    <td class="produced">0</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text">0%</div>
+                    </td>
+                    <td><input type="number" class="next-progress" value="0" min="0" max="100" readonly> %</td>
+                    <td><button class="toggle-btn">가동 시작</button></td>
+                </tr>
+                <!-- 사출기 8 -->
+                <tr data-paused-elapsed="0" data-start-time="" data-job-start-time="">
+                    <td><strong>사출기 8</strong></td>
+                    <td class="status idle-status">대기</td>
+                    <td><input type="text" class="product" value="제품-H-008" readonly></td>
+                    <td><input type="text" class="next-product" value="제품-H-009" readonly></td>
+                    <td><input type="number" class="target" value="9800" readonly></td>
+                    <td><input type="number" class="cycle" value="39" readonly></td>
+                    <td class="start-time">-</td>
+                    <td class="elapsed">00:00:00</td>
+                    <td class="produced">0</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text">0%</div>
+                    </td>
+                    <td><input type="number" class="next-progress" value="0" min="0" max="100" readonly> %</td>
+                    <td><button class="toggle-btn">가동 시작</button></td>
+                </tr>
+                <!-- 사출기 9 -->
+                <tr data-paused-elapsed="0" data-start-time="" data-job-start-time="">
+                    <td><strong>사출기 9</strong></td>
+                    <td class="status idle-status">대기</td>
+                    <td><input type="text" class="product" value="제품-I-009" readonly></td>
+                    <td><input type="text" class="next-product" value="제품-I-010" readonly></td>
+                    <td><input type="number" class="target" value="7200" readonly></td>
+                    <td><input type="number" class="cycle" value="48" readonly></td>
+                    <td class="start-time">-</td>
+                    <td class="elapsed">00:00:00</td>
+                    <td class="produced">0</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text">0%</div>
+                    </td>
+                    <td><input type="number" class="next-progress" value="0" min="0" max="100" readonly> %</td>
+                    <td><button class="toggle-btn">가동 시작</button></td>
+                </tr>
+                <!-- 사출기 10 -->
+                <tr data-paused-elapsed="0" data-start-time="" data-job-start-time="">
+                    <td><strong>사출기 10</strong></td>
+                    <td class="status idle-status">대기</td>
+                    <td><input type="text" class="product" value="제품-J-010" readonly></td>
+                    <td><input type="text" class="next-product" value="제품-J-011" readonly></td>
+                    <td><input type="number" class="target" value="8500" readonly></td>
+                    <td><input type="number" class="cycle" value="41" readonly></td>
+                    <td class="start-time">-</td>
+                    <td class="elapsed">00:00:00</td>
+                    <td class="produced">0</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text">0%</div>
+                    </td>
+                    <td><input type="number" class="next-progress" value="0" min="0" max="100" readonly> %</td>
+                    <td><button class="toggle-btn">가동 시작</button></td>
+                </tr>
+                <!-- 사출기 11 -->
+                <tr data-paused-elapsed="0" data-start-time="" data-job-start-time="">
+                    <td><strong>사출기 11</strong></td>
+                    <td class="status idle-status">대기</td>
+                    <td><input type="text" class="product" value="제품-K-011" readonly></td>
+                    <td><input type="text" class="next-product" value="제품-K-012" readonly></td>
+                    <td><input type="number" class="target" value="10500" readonly></td>
+                    <td><input type="number" class="cycle" value="52" readonly></td>
+                    <td class="start-time">-</td>
+                    <td class="elapsed">00:00:00</td>
+                    <td class="produced">0</td>
+                    <td class="progress-cell">
+                        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+                        <div class="progress-text">0%</div>
+                    </td>
+                    <td><input type="number" class="next-progress" value="0" min="0" max="100" readonly> %</td>
+                    <td><button class="toggle-btn">가동 시작</button></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="summary">
+        <div class="summary-box">
+            <div class="summary-title">가동 중 사출기</div>
+            <div class="summary-value" id="running-count">0 대</div>
+        </div>
+        <div class="summary-box">
+            <div class="summary-title">전체 평균 진행율</div>
+            <div class="summary-value" id="avg-progress">0%</div>
+        </div>
+        <div class="summary-box">
+            <div class="summary-title">총 이론 생산량</div>
+            <div class="summary-value" id="total-produced">0 개</div>
+        </div>
+        <div class="summary-box">
+            <div class="summary-title">이후 공정 평균 진행율</div>
+            <div class="summary-value" id="avg-next">0%</div>
+        </div>
+    </div>
+
+    <div class="note">
+        ✅ <strong>사용 방법</strong><br>
+        • 일반 사용자는 **보기 전용**입니다.<br>
+        • 상단 <strong>관리자 모드 ON</strong> 버튼을 클릭하면 모든 입력 항목(현재/다음 작업 제품, 목표 수량, 사이클 타임 등)을 수정할 수 있습니다.<br>
+        • 사이클 타임을 변경하면 진행율이 실시간으로 자동 계산됩니다.<br>
+        • 가로 스크롤로 전체 컬럼을 확인할 수 있습니다.
+    </div>
+
+    <script>
+        const table = document.getElementById('statusTable');
+        const adminBtn = document.getElementById('adminToggle');
+        let isAdminMode = false;
+        let updateInterval = null;
+
+        function updateCurrentTime() {
+            const timeEl = document.getElementById('current-time');
+            setInterval(() => {
+                const now = new Date();
+                timeEl.textContent = now.toLocaleString('ko-KR', {
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit'
+                });
+            }, 1000);
+        }
+
+        function toggleAdminMode() {
+            isAdminMode = !isAdminMode;
+            const inputs = table.querySelectorAll('input');
+            inputs.forEach(input => {
+                if (['product','next-product','target','cycle','next-progress'].includes(input.className)) {
+                    if (isAdminMode) {
+                        input.removeAttribute('readonly');
+                        input.style.background = '#ffffff';
+                        input.style.color = '#333';
+                    } else {
+                        input.setAttribute('readonly', true);
+                        input.style.background = '#f0f0f0';
+                        input.style.color = '#555';
+                    }
+                }
+            });
+            adminBtn.textContent = isAdminMode ? 
+                '관리자 모드 OFF (보기 전용으로 전환)' : 
+                '관리자 모드 ON (수정 허용)';
+            adminBtn.classList.toggle('admin-mode', isAdminMode);
+        }
+
+        function updateRow(row) {
+            const now = Date.now();
+            const cycle = parseFloat(row.querySelector('.cycle').value) || 0;
+            const target = parseFloat(row.querySelector('.target').value) || 0;
+            
+            let baseElapsed = parseFloat(row.dataset.pausedElapsed) || 0;
+            let liveElapsed = 0;
+            let isRunning = false;
+            
+            if (row.dataset.startTime) {
+                isRunning = true;
+                liveElapsed = Math.floor((now - parseFloat(row.dataset.startTime)) / 1000);
+            }
+            
+            const totalSec = baseElapsed + liveElapsed;
+            
+            const h = Math.floor(totalSec / 3600);
+            const m = Math.floor((totalSec % 3600) / 60);
+            const s = totalSec % 60;
+            row.querySelector('.elapsed').textContent = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            
+            let produced = (cycle > 0 && isRunning) ? Math.floor(totalSec / cycle) : 0;
+            row.querySelector('.produced').textContent = produced;
+            
+            let progress = target > 0 ? Math.min(100, Math.round((produced / target) * 100)) : 0;
+            row.querySelector('.progress-fill').style.width = `${progress}%`;
+            row.querySelector('.progress-text').textContent = `${progress}%`;
+            
+            const statusCell = row.querySelector('.status');
+            if (isRunning) {
+                statusCell.className = 'status running-status';
+                statusCell.textContent = '🟢 가동중';
+            } else {
+                statusCell.className = 'status idle-status';
+                statusCell.textContent = '⚪ 대기';
+            }
+            
+            return { 
+                isRunning, 
+                progress, 
+                produced, 
+                next: parseFloat(row.querySelector('.next-progress').value) || 0 
+            };
+        }
+
+        function updateTable() {
+            const rows = table.querySelectorAll('tbody tr');
+            let running = 0, totalProg = 0, totalProd = 0, totalNext = 0, count = 0;
+            
+            rows.forEach(row => {
+                const d = updateRow(row);
+                if (d.isRunning) running++;
+                totalProg += d.progress;
+                totalProd += d.produced;
+                totalNext += d.next;
+                count++;
+            });
+            
+            document.getElementById('running-count').textContent = `${running} 대`;
+            document.getElementById('avg-progress').textContent = count ? `${Math.round(totalProg / count)}%` : '0%';
+            document.getElementById('total-produced').textContent = `${totalProd} 개`;
+            document.getElementById('avg-next').textContent = count ? `${Math.round(totalNext / count)}%` : '0%';
+        }
+
+        function attachToggleButtons() {
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const row = this.closest('tr');
+                    const now = Date.now();
+                    
+                    if (row.dataset.startTime) {
+                        const base = parseFloat(row.dataset.pausedElapsed) || 0;
+                        const live = Math.floor((now - parseFloat(row.dataset.startTime)) / 1000);
+                        row.dataset.pausedElapsed = base + live;
+                        delete row.dataset.startTime;
+                        this.textContent = '가동 시작';
+                        this.classList.remove('running');
+                    } else {
+                        row.dataset.startTime = now.toString();
+                        if (!row.dataset.jobStartTime) row.dataset.jobStartTime = now.toString();
+                        this.textContent = '정지';
+                        this.classList.add('running');
+                    }
+                    updateTable();
+                });
+            });
+        }
+
+        function initialize() {
+            updateCurrentTime();
+            attachToggleButtons();
+            adminBtn.addEventListener('click', toggleAdminMode);
+            updateInterval = setInterval(updateTable, 1000);
+            updateTable();
+            console.log('%c✅ 사출기 11대 실시간 현황판 최적화 버전 로드 완료', 'color:#1a3c6e; font-weight:bold');
+        }
+
+        window.onload = initialize;
+    </script>
+</body>
+</html>
